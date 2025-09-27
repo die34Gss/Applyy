@@ -282,7 +282,6 @@ async def on_ready():
                 except Exception:
                     continue
 
-# ===== HolidayMods Modal =====
 class HolidayMods(discord.ui.Modal, title="Holiday Request - Moderators"):
     name = discord.ui.TextInput(label="👤 Full Name", placeholder="Your full name", required=True)
     duration = discord.ui.TextInput(label="🗓️ Duration", placeholder="Example: 01/10/2025 - 07/10/2025", required=True)
@@ -304,22 +303,90 @@ class HolidayMods(discord.ui.Modal, title="Holiday Request - Moderators"):
                 text=f"User ID: {interaction.user.id} | Holiday Request",
                 icon_url=interaction.user.display_avatar.url
             )
-            embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")  # holiday icon
+            embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")
 
-            view = ApplicationView(user=interaction.user, role_id=MODERATOR_ROLE_ID, is_partner=False)
+            view = HolidayApplicationView(user=interaction.user)
             await channel.send(embed=embed, view=view)
         except Exception as e:
             print(f"Failed to send holiday request: {e}")
 
 
-# ===== HolidayMods Apply Buttons =====
-class HolidayApplyView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
 
-    @discord.ui.button(label='Request Holiday', emoji="🏖️", style=discord.ButtonStyle.primary, custom_id="apply_holiday")
-    async def holiday(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(HolidayMods())
+# ===== HolidayMods View (Custom Accept/Deny) =====
+HOLIDAY_ROLE_ID = 1421599062154809511
+HOLIDAY_CHANNEL_ID = 1421600199876546560
+HOLIDAY_ALLOWED_USERS = [241597878944923648, 1001121686067871804]  # Allowed reviewers
+
+class HolidayApplicationView(discord.ui.View):
+    def __init__(self, user):
+        super().__init__(timeout=None)
+        self.user = user
+
+    async def disable_buttons(self, interaction: discord.Interaction):
+        for item in self.children:
+            item.disabled = True
+        await interaction.message.edit(view=self)
+
+    @discord.ui.button(label="Accept Holiday", style=discord.ButtonStyle.success, custom_id="holiday_accept_button")
+    async def accept(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id not in HOLIDAY_ALLOWED_USERS:
+            await interaction.response.send_message("🚫 You are not authorized to accept this holiday request.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        role = guild.get_role(HOLIDAY_ROLE_ID)
+        channel = guild.get_channel(HOLIDAY_CHANNEL_ID)
+
+        if role:
+            await self.user.add_roles(role, reason="Holiday Request Accepted")
+
+        embed = discord.Embed(
+            title="🏖️ Holiday Accepted!",
+            description=f"{self.user.mention} has been **granted holiday leave** 🎉",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text=f"Accepted by {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+        # Send public log with audio
+        if channel:
+            file_path = "accepted.mp3"
+            if os.path.exists(file_path):
+                file = discord.File(file_path, filename="accepted.mp3")
+                await channel.send(embed=embed, file=file)
+            else:
+                await channel.send(embed=embed)
+
+        await interaction.response.send_message(f"✅ {self.user.mention}'s holiday request accepted.", ephemeral=False)
+        await self.disable_buttons(interaction)
+
+    @discord.ui.button(label="Deny Holiday", style=discord.ButtonStyle.danger, custom_id="holiday_deny_button")
+    async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id not in HOLIDAY_ALLOWED_USERS:
+            await interaction.response.send_message("🚫 You are not authorized to deny this holiday request.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        channel = guild.get_channel(HOLIDAY_CHANNEL_ID)
+
+        embed = discord.Embed(
+            title="❌ Holiday Denied",
+            description=f"{self.user.mention}'s holiday request has been **denied**.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=f"Denied by {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+        # Send public log with audio
+        if channel:
+            file_path = "holiday.mp3"
+            if os.path.exists(file_path):
+                file = discord.File(file_path, filename="holiday.mp3")
+                await channel.send(embed=embed, file=file)
+            else:
+                await channel.send(embed=embed)
+
+        await interaction.response.send_message(f"❌ {self.user.mention}'s holiday request denied.", ephemeral=False)
+        await self.disable_buttons(interaction)
+
 
 @bot.command()
 async def holidaymods(ctx):
