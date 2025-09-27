@@ -283,7 +283,6 @@ async def on_ready():
                     continue
 
 @bot.command()
-@commands.has_permissions(administrator=True)
 async def holidaymods(ctx):
     embed = discord.Embed(
         title="🏝️ Moderator Holiday Application",
