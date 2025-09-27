@@ -431,7 +431,6 @@ class HolidayApplyView(discord.ui.View):
 
 # ----- Command to Post Holiday Embed -----
 @bot.command()
-@commands.has_permissions(administrator=True)
 async def holidaymods(ctx):
     embed = discord.Embed(
         title="🏝️ Moderator Holiday Application",
