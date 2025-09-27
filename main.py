@@ -302,9 +302,9 @@ async def holidaymods(ctx):
     embed.set_footer(text="Holiday Request System | powered by Old")
 
     # Attach audio file with embed
-    file_path = "holiday.mp3"  # make sure this file exists in your bot folder
+    file_path = "ropo.mp3"  # make sure this file exists in your bot folder
     if os.path.exists(file_path):
-        file = discord.File(file_path, filename="holiday.mp3")
+        file = discord.File(file_path, filename="ropo.mp3")
         message = await ctx.send(embed=embed, view=HolidayApplyView(), file=file)
     else:
         message = await ctx.send(embed=embed, view=HolidayApplyView())
