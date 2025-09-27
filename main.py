@@ -282,6 +282,69 @@ async def on_ready():
                 except Exception:
                     continue
 
+# ===== HolidayMods Modal =====
+class HolidayMods(discord.ui.Modal, title="Holiday Request - Moderators"):
+    name = discord.ui.TextInput(label="👤 Full Name", placeholder="Your full name", required=True)
+    duration = discord.ui.TextInput(label="🗓️ Duration", placeholder="Example: 01/10/2025 - 07/10/2025", required=True)
+    reason = discord.ui.TextInput(label="📖 Reason", style=discord.TextStyle.paragraph, placeholder="Explain why you need this holiday...", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message("✅ Your holiday request has been submitted!", ephemeral=True)
+        try:
+            channel = await bot.fetch_channel(APPLICATION_CHANNEL_ID)
+            embed = discord.Embed(
+                title="🏖️ New Holiday Request",
+                description=f"👮 **Moderator:** {interaction.user.mention}\n\nA moderator has requested holiday leave.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="👤 Full Name", value=str(self.name), inline=False)
+            embed.add_field(name="🗓️ Duration", value=str(self.duration), inline=False)
+            embed.add_field(name="📖 Reason", value=str(self.reason), inline=False)
+            embed.set_footer(
+                text=f"User ID: {interaction.user.id} | Holiday Request",
+                icon_url=interaction.user.display_avatar.url
+            )
+            embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")  # holiday icon
+
+            view = ApplicationView(user=interaction.user, role_id=MODERATOR_ROLE_ID, is_partner=False)
+            await channel.send(embed=embed, view=view)
+        except Exception as e:
+            print(f"Failed to send holiday request: {e}")
+
+
+# ===== HolidayMods Apply Buttons =====
+class HolidayApplyView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label='Request Holiday', emoji="🏖️", style=discord.ButtonStyle.primary, custom_id="apply_holiday")
+    async def holiday(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(HolidayMods())
+
+
+# ===== Command to Post HolidayMods Embed =====
+@bot.command()
+async def holidaymods(ctx):
+    embed = discord.Embed(
+        title="🏝️ Moderator Holiday Application",
+        description=(
+            "Our **Moderation Team** can now request holidays!\n\n"
+            "📝 **Process:**\n"
+            " - Click the button below to fill out your holiday request.\n"
+            " - Provide your **Full Name**, **Duration**, and **Reason**.\n"
+            " - Requests will be reviewed and responded to by the staff.\n\n"
+            "⚠️ Note: Abusing this system may result in removal from the moderator team."
+        ),
+        color=discord.Color.teal()
+    )
+    embed.set_author(name="Achraf Sabiri Server - Holiday Manager", icon_url=ctx.guild.icon.url if ctx.guild.icon else "")
+    embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")
+    embed.set_footer(text="Holiday Request System | powered by Old")
+
+    message = await ctx.send(embed=embed, view=HolidayApplyView())
+    save_message("holidaymods_message_id", message.id)
+
+
 
 # ===== Run Bot =====
 load_dotenv()
