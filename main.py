@@ -377,7 +377,7 @@ class HolidayApplicationView(discord.ui.View):
 
         # Send public log with audio
         if channel:
-            file_path = "holiday.mp3"
+            file_path = "ropo.mp3"
             if os.path.exists(file_path):
                 file = discord.File(file_path, filename="holiday.mp3")
                 await channel.send(embed=embed, file=file)
