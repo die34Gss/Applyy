@@ -312,11 +312,44 @@ class HolidayMods(discord.ui.Modal, title="Holiday Request - Moderators"):
 
 
 
-# ===== HolidayMods View (Custom Accept/Deny) =====
+# ===== HolidayMods System =====
+
 HOLIDAY_ROLE_ID = 1421599062154809511
 HOLIDAY_CHANNEL_ID = 1421600199876546560
 HOLIDAY_ALLOWED_USERS = [241597878944923648, 1001121686067871804]  # Allowed reviewers
 
+
+# ----- Holiday Request Modal -----
+class HolidayMods(discord.ui.Modal, title="Holiday Request - Moderators"):
+    name = discord.ui.TextInput(label="👤 Full Name", placeholder="Your full name", required=True)
+    duration = discord.ui.TextInput(label="🗓️ Duration", placeholder="Example: 01/10/2025 - 07/10/2025", required=True)
+    reason = discord.ui.TextInput(label="📖 Reason", style=discord.TextStyle.paragraph, placeholder="Explain why you need this holiday...", required=True)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message("✅ Your holiday request has been submitted!", ephemeral=True)
+        try:
+            channel = await bot.fetch_channel(APPLICATION_CHANNEL_ID)
+            embed = discord.Embed(
+                title="🏖️ New Holiday Request",
+                description=f"👮 **Moderator:** {interaction.user.mention}\n\nA moderator has requested holiday leave.",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="👤 Full Name", value=str(self.name), inline=False)
+            embed.add_field(name="🗓️ Duration", value=str(self.duration), inline=False)
+            embed.add_field(name="📖 Reason", value=str(self.reason), inline=False)
+            embed.set_footer(
+                text=f"User ID: {interaction.user.id} | Holiday Request",
+                icon_url=interaction.user.display_avatar.url
+            )
+            embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")
+
+            view = HolidayApplicationView(user=interaction.user)
+            await channel.send(embed=embed, view=view)
+        except Exception as e:
+            print(f"Failed to send holiday request: {e}")
+
+
+# ----- Accept/Deny View -----
 class HolidayApplicationView(discord.ui.View):
     def __init__(self, user):
         super().__init__(timeout=None)
@@ -347,7 +380,6 @@ class HolidayApplicationView(discord.ui.View):
         )
         embed.set_footer(text=f"Accepted by {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
-        # Send public log with audio
         if channel:
             file_path = "accepted.mp3"
             if os.path.exists(file_path):
@@ -375,7 +407,6 @@ class HolidayApplicationView(discord.ui.View):
         )
         embed.set_footer(text=f"Denied by {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
-        # Send public log with audio
         if channel:
             file_path = "ropo.mp3"
             if os.path.exists(file_path):
@@ -388,7 +419,19 @@ class HolidayApplicationView(discord.ui.View):
         await self.disable_buttons(interaction)
 
 
+# ----- Button to Open Modal -----
+class HolidayApplyView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label='Request Holiday', emoji="🏖️", style=discord.ButtonStyle.primary, custom_id="apply_holiday")
+    async def holiday(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(HolidayMods())
+
+
+# ----- Command to Post Holiday Embed -----
 @bot.command()
+@commands.has_permissions(administrator=True)
 async def holidaymods(ctx):
     embed = discord.Embed(
         title="🏝️ Moderator Holiday Application",
@@ -406,8 +449,7 @@ async def holidaymods(ctx):
     embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/869/869636.png")
     embed.set_footer(text="Holiday Request System | powered by Old")
 
-    # Attach audio file with embed
-    file_path = "ropo.mp3"  # make sure this file exists in your bot folder
+    file_path = "ropo.mp3"  # fun audio when posting the panel
     if os.path.exists(file_path):
         file = discord.File(file_path, filename="ropo.mp3")
         message = await ctx.send(embed=embed, view=HolidayApplyView(), file=file)
@@ -416,7 +458,26 @@ async def holidaymods(ctx):
 
     save_message("holidaymods_message_id", message.id)
 
+# ===== Events =====
+@bot.event
+async def on_ready():
+    print(f"✅ Logged in as {bot.user} (ID: {bot.user.id})")
 
+    # Restore HolidayMods Apply Panel
+    holidaymods_message_id = load_message("holidaymods_message_id")
+    if holidaymods_message_id:
+        for guild in bot.guilds:
+            for channel in guild.text_channels:
+                try:
+                    perms = channel.permissions_for(guild.me)
+                    if not perms.read_messages or not perms.read_message_history:
+                        continue
+                    message = await channel.fetch_message(holidaymods_message_id)
+                    await message.edit(view=HolidayApplyView())
+                    print(f"✅ Reattached HolidayApplyView to message {holidaymods_message_id} in {guild.name}")
+                    break
+                except Exception:
+                    continue
 
 
 # ===== Run Bot =====
