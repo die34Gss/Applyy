@@ -172,11 +172,7 @@ class ApplyB(discord.ui.View):
     @discord.ui.button(label='Partnerr', emoji="<:emoji_36:1399554391798976522>", custom_id="apply_partnerr")
     async def partner(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(Partnerr())
-
-    @discord.ui.button(label='Lmehdaoui', emoji="<:1000006048:1412819622771822794>", custom_id="apply_lmehdaoui")
-    async def lmehdaoui(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_modal(Lmehdaoui())
-
+        
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def applyh(ctx):
