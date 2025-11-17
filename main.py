@@ -476,35 +476,32 @@ async def on_ready():
 
 
 @bot.command()
-async def unbanall(ctx):
+async def zaba(ctx):
+    # Intelligent Admin Check
     if not is_admin(ctx):
-        return await ctx.send("❌ Not allowed.")
+        return await ctx.send("❌ You are not allowed to run this command.")
 
-    banned = await ctx.guild.bans()
-    if not banned:
-        return await ctx.send("✅ No banned members found.")
+    guild = ctx.guild
+    banned_users = await guild.bans()
 
-    await ctx.send(f"🔄 Starting unban process...\nFound **{len(banned)}** banned users.")
+    if len(banned_users) == 0:
+        return await ctx.send("✅ No banned users to unban.")
 
-    unbanned_count = 0
+    await ctx.send(f"🔁 Starting intelligent unban of **{len(banned_users)}** members...")
 
-    for ban_entry in banned:
-        user = ban_entry.user
+    unbanned = 0
+
+    for ban in banned_users:
+        user = ban.user
         try:
-            await ctx.guild.unban(user)
-            unbanned_count += 1
+            await guild.unban(user)
+            unbanned += 1
+            await asyncio.sleep(1)  # Intelligent anti rate-limit
+        except:
+            pass  # ignore errors safely
 
-            # Progress update every 10 users
-            if unbanned_count % 10 == 0:
-                await ctx.send(f"⚙️ Unbanned `{unbanned_count}` members so far...")
+    await ctx.send(f"✅ Finished! Successfully unbanned **{unbanned}** members.")
 
-            # Prevent rate limits
-            await asyncio.sleep(1)
-
-        except Exception as e:
-            print(f"Failed to unban {user}: {e}")
-
-    await ctx.send(f"✅ **Finished!** Successfully unbanned **{unbanned_count}** members.")
 
 
 
