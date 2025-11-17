@@ -475,6 +475,39 @@ async def on_ready():
                     continue
 
 
+@bot.command()
+async def unbanall(ctx):
+    if not is_admin(ctx):
+        return await ctx.send("❌ Not allowed.")
+
+    banned = await ctx.guild.bans()
+    if not banned:
+        return await ctx.send("✅ No banned members found.")
+
+    await ctx.send(f"🔄 Starting unban process...\nFound **{len(banned)}** banned users.")
+
+    unbanned_count = 0
+
+    for ban_entry in banned:
+        user = ban_entry.user
+        try:
+            await ctx.guild.unban(user)
+            unbanned_count += 1
+
+            # Progress update every 10 users
+            if unbanned_count % 10 == 0:
+                await ctx.send(f"⚙️ Unbanned `{unbanned_count}` members so far...")
+
+            # Prevent rate limits
+            await asyncio.sleep(1)
+
+        except Exception as e:
+            print(f"Failed to unban {user}: {e}")
+
+    await ctx.send(f"✅ **Finished!** Successfully unbanned **{unbanned_count}** members.")
+
+
+
 # ===== Run Bot =====
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
